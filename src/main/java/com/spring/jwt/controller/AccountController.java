@@ -3,6 +3,7 @@ package com.spring.jwt.controller;
 import com.spring.jwt.Interfaces.UserService;
 import com.spring.jwt.dto.RegisterDto;
 import com.spring.jwt.exception.BaseException;
+import com.spring.jwt.exception.UnauthorizedException;
 import com.spring.jwt.exception.UserAlreadyExistException;
 import com.spring.jwt.utils.BaseResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,9 @@ public class AccountController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new BaseResponseDTO("Unsuccessful","User already exists"));
         }catch (BaseException e){
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new BaseResponseDTO("Unsuccessful","Invalid role"));
+        }catch (UnauthorizedException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new BaseResponseDTO("Unsuccessful",e.getMessage()));
+
         }
     }
 }

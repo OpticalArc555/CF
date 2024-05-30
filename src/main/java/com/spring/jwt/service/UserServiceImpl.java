@@ -16,6 +16,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
@@ -43,8 +45,17 @@ public class UserServiceImpl implements UserService {
 
         validateAccount(registerDto);
 
-        User user = insertUser(registerDto);
+        if (registerDto.getRoles().equalsIgnoreCase("ADMIN")) {
+            long adminCount = userRepository.countByRoleName("ADMIN");
+            if (adminCount >= 3) {
+               throw new UnauthorizedException ("You are not Authorized to Create This Account");
+            }
+        }
+        if (isDealerOrInspector(registerDto.getRoles()) && !userHasAdminAuthority()) {
+            throw new UnauthorizedException("User does not have the authority of ADMIN to create this account.");
+        }
 
+        User user = insertUser(registerDto);
 
         try {
             userRepository.save(user);
@@ -58,6 +69,16 @@ public class UserServiceImpl implements UserService {
             response.setMessage("Invalid role");
         }
         return response;
+    }
+
+    private boolean isDealerOrInspector(String role) {
+        return role.equals("DEALER") || role.equals("INSPECTOR");
+    }
+
+    private boolean userHasAdminAuthority() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ADMIN"));
     }
 
     private User insertUser(RegisterDto registerDto) {
